@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【リッチ版】インタラクティブ新人交流会アジェンダ</title>
+    <title>【改善版】インタラクティブ新人交流会アジェンダ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
@@ -11,104 +11,124 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans JP', sans-serif; }
-        .chart-container { position: relative; width: 100%; max-width: 300px; margin: auto; height: 300px; }
+        body { 
+            font-family: 'Noto Sans JP', sans-serif; 
+            background-color: #f0f4f8; /* Slightly bluish-gray background */
+        }
+        .chart-container { position: relative; width: 100%; max-width: 280px; margin: auto; height: 280px; }
         .progress-bar-bg { background-color: #e5e7eb; }
-        .progress-bar { background-color: #3b82f6; transition: width 1s linear; }
-        .gemini-btn { background-color: #1e40af; }
-        .gemini-btn:hover { background-color: #1d4ed8; }
-        .gemini-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        .progress-bar { 
+            background-color: #3b82f6; 
+            transition: width 0.5s ease-in-out; 
+        }
+        .gemini-btn { 
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            transition: all 0.3s ease;
+        }
+        .gemini-btn:hover { box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
+        .gemini-btn:disabled { background: #94a3b8; cursor: not-allowed; box-shadow: none;}
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .agenda-item { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+        .agenda-item:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        #wordCloudCanvasContainer {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* Aspect ratio 1:1 */
+            overflow: hidden;
+        }
+        #wordCloudCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class=" text-slate-800">
 
-    <div class="container mx-auto max-w-3xl p-4 sm:p-8">
+    <div class="container mx-auto max-w-5xl p-4 sm:p-8">
         
         <header class="text-center mb-12">
             <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">インタラクティブ新人交流会アジェンダ</h1>
             <p class="text-slate-500">✨ AIで会話をリッチに彩る ✨</p>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <main class="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             
-            <div id="agenda-column">
-                <section id="time-allocation" class="mb-8">
-                    <h2 class="text-xl font-bold text-center mb-4 text-slate-900">時間配分 (全体30分)</h2>
-                    <div class="chart-container">
-                        <canvas id="timeAllocationChart"></canvas>
-                    </div>
-                </section>
-
-                <section id="agenda">
-                    <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">当日のトークテーマ</h2>
+            <div class="lg:col-span-3">
+                 <section id="agenda">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-6">当日のトークテーマ</h2>
                     <div class="space-y-6">
-                        <div id="step-1" class="agenda-item bg-white p-5 rounded-lg shadow-md border border-slate-200" data-duration="10">
+                        <div id="step-1" class="agenda-item bg-white p-5 rounded-xl shadow-md border border-slate-200" data-duration="10">
                             <div class="flex justify-between items-start">
                                 <div>
                                     <div class="flex items-center mb-2">
+                                        <span class="text-2xl mr-3">☕</span>
                                         <h3 class="text-lg font-semibold text-slate-900">アイスブレイク</h3>
-                                        <span id="status-1" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">未開始</span>
+                                        <span id="status-1" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">10分</span>
                                     </div>
-                                    <p class="text-sm text-slate-500">まずはお互いを知る時間</p>
+                                    <p class="text-sm text-slate-500 pl-9">まずはお互いを知る時間</p>
                                 </div>
-                                <button class="start-btn bg-sky-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-sky-700 transition" data-step="1">開始</button>
+                                <button class="start-btn flex-shrink-0 bg-sky-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-sky-700 transition w-28" data-step="1">▶ 開始</button>
                             </div>
-                            <div class="mt-4">
-                                <div class="progress-bar-bg w-full rounded-full h-2.5">
-                                    <div id="progress-1" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+                            <div class="mt-4 pl-9">
+                                <div class="progress-bar-bg w-full rounded-full h-2">
+                                    <div id="progress-1" class="progress-bar h-2 rounded-full" style="width: 0%"></div>
                                 </div>
                             </div>
-                            <div class="mt-4 pt-4 border-t border-slate-200">
+                            <div class="mt-4 pt-4 border-t border-slate-100 pl-9">
                                 <ul class="space-y-2 text-slate-600 list-disc list-inside text-sm">
                                     <li>最近の個人的な「小さなブーム」は？</li>
                                     <li>もし自分がコンビニの商品だったら何だと思う？</li>
                                 </ul>
                                  <div class="mt-4">
-                                    <button id="generateIcebreaker" class="gemini-btn w-full text-sm text-white font-bold py-2 px-4 rounded">✨ AIで新しいお題を生成</button>
+                                    <button id="generateIcebreaker" class="gemini-btn w-full text-sm text-white font-bold py-2.5 px-4 rounded-lg">✨ AIで新しいお題を生成</button>
                                     <div id="icebreakerLoader" class="hidden loader"></div>
                                     <div id="icebreakerResult" class="mt-3 p-3 bg-slate-100 rounded-md text-slate-700 text-sm hidden"></div>
                                 </div>
                             </div>
                         </div>
-                        <div id="step-2" class="agenda-item bg-white p-5 rounded-lg shadow-md border border-slate-200" data-duration="15">
+                        <div id="step-2" class="agenda-item bg-white p-5 rounded-xl shadow-md border border-slate-200" data-duration="15">
                              <div class="flex justify-between items-start">
                                 <div>
                                     <div class="flex items-center mb-2">
+                                        <span class="text-2xl mr-3">💼</span>
                                         <h3 class="text-lg font-semibold text-slate-900">ちょっとだけ仕事の話</h3>
-                                        <span id="status-2" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">未開始</span>
+                                        <span id="status-2" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">15分</span>
                                     </div>
-                                    <p class="text-sm text-slate-500">発見や気づきを共有！</p>
+                                    <p class="text-sm text-slate-500 pl-9">発見や気づきを共有！</p>
                                 </div>
-                                <button class="start-btn bg-sky-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-sky-700 transition" data-step="2">開始</button>
+                                <button class="start-btn flex-shrink-0 bg-sky-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-sky-700 transition w-28" data-step="2">▶ 開始</button>
                             </div>
-                            <div class="mt-4">
-                                <div class="progress-bar-bg w-full rounded-full h-2.5">
-                                    <div id="progress-2" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+                            <div class="mt-4 pl-9">
+                                <div class="progress-bar-bg w-full rounded-full h-2">
+                                    <div id="progress-2" class="progress-bar h-2 rounded-full" style="width: 0%"></div>
                                 </div>
                             </div>
-                             <div class="mt-4 pt-4 border-t border-slate-200">
+                             <div class="mt-4 pt-4 border-t border-slate-100 pl-9">
                                 <ul class="space-y-2 text-slate-600 list-disc list-inside text-sm">
                                     <li>入社してから知った、面白い「社内用語」は？</li>
                                     <li>最近、仕事で「なるほど！」って思った瞬間は？</li>
                                 </ul>
                             </div>
                         </div>
-                        <div id="step-3" class="agenda-item bg-white p-5 rounded-lg shadow-md border border-slate-200" data-duration="5">
+                        <div id="step-3" class="agenda-item bg-white p-5 rounded-xl shadow-md border border-slate-200" data-duration="5">
                              <div class="flex justify-between items-start">
                                 <div>
                                     <div class="flex items-center mb-2">
+                                        <span class="text-2xl mr-3">🤔</span>
                                         <h3 class="text-lg font-semibold text-slate-900">なんでも質問</h3>
-                                        <span id="status-3" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">未開始</span>
+                                        <span id="status-3" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">5分</span>
                                     </div>
-                                    <p class="text-sm text-slate-500">気になったことを何でも！</p>
+                                    <p class="text-sm text-slate-500 pl-9">気になったことを何でも！</p>
                                 </div>
-                                <button class="start-btn bg-sky-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-sky-700 transition" data-step="3">開始</button>
+                                <button class="start-btn flex-shrink-0 bg-sky-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-sky-700 transition w-28" data-step="3">▶ 開始</button>
                             </div>
-                            <div class="mt-4">
-                                <div class="progress-bar-bg w-full rounded-full h-2.5">
-                                    <div id="progress-3" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+                            <div class="mt-4 pl-9">
+                                <div class="progress-bar-bg w-full rounded-full h-2">
+                                    <div id="progress-3" class="progress-bar h-2 rounded-full" style="width: 0%"></div>
                                 </div>
                             </div>
                         </div>
@@ -116,22 +136,28 @@
                 </section>
             </div>
 
-            <div id="interactive-column">
-                <section id="wordcloud-section" class="bg-white p-6 rounded-lg shadow-md border border-slate-200 sticky top-8">
-                    <h2 class="text-2xl font-bold text-center mb-4 text-slate-900">今日のキーワード</h2>
-                    <p class="text-center text-sm text-slate-500 mb-4">会話で出た言葉を追加してみよう！</p>
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="wordInput" class="flex-grow p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500" placeholder="キーワードを入力してEnter">
-                        <button id="addWordBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700">追加</button>
-                    </div>
-                    <canvas id="wordCloudCanvas" width="400" height="400"></canvas>
-                </section>
+            <div class="lg:col-span-2">
+                <div class="sticky top-8 space-y-8">
+                    <section id="time-allocation" class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h2 class="text-xl font-bold text-center mb-4 text-slate-900">時間配分 (全体30分)</h2>
+                        <div class="chart-container">
+                            <canvas id="timeAllocationChart"></canvas>
+                        </div>
+                    </section>
+                    <section id="wordcloud-section" class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h2 class="text-xl font-bold text-center mb-2 text-slate-900">今日のキーワード</h2>
+                        <p class="text-center text-sm text-slate-500 mb-4">会話で出た言葉を追加しよう！</p>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="wordInput" class="flex-grow p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 transition" placeholder="キーワードを入力してEnter">
+                            <button id="addWordBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">追加</button>
+                        </div>
+                        <div id="wordCloudCanvasContainer">
+                            <canvas id="wordCloudCanvas"></canvas>
+                        </div>
+                    </section>
+                </div>
             </div>
         </main>
-
-        <footer class="text-center mt-16 text-slate-400 text-sm">
-            <p>時間配分やテーマは気にせず、自由に楽しんでください！</p>
-        </footer>
     </div>
 
     <script>
@@ -141,16 +167,21 @@
             new Chart(chartCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['アイスブレイク (10分)', '仕事の話 (15分)', 'なんでも質問 (5分)'],
+                    labels: ['アイスブレイク', '仕事の話', 'なんでも質問'],
                     datasets: [{
                         data: [10, 15, 5],
                         backgroundColor: ['#7dd3fc', '#38bdf8', '#0ea5e9'],
-                        borderColor: '#f8fafc', borderWidth: 4, hoverOffset: 8
+                        borderColor: '#ffffff', borderWidth: 4, hoverOffset: 8
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                             labels: { font: { family: "'Noto Sans JP', sans-serif" } }
+                        } 
+                    },
                     cutout: '60%'
                 }
             });
@@ -168,31 +199,31 @@
                      ctx.fillStyle = '#9ca3af';
                      ctx.textAlign = 'center';
                      ctx.font = '16px "Noto Sans JP"';
-                     ctx.fillText('まだキーワードがありません', canvas.width / 2, canvas.height / 2);
+                     ctx.fillText('キーワードを追加しよう！', canvas.width / 2, canvas.height / 2);
                      return;
                 }
-                const options = {
+                WordCloud(canvas, {
                     list: wordList,
-                    gridSize: Math.round(16 * canvas.width / 1024),
-                    weightFactor: (size) => Math.pow(size, 2.3) * canvas.width / 1024,
+                    gridSize: 8,
+                    weightFactor: (size) => Math.pow(size, 1.8) * 10,
                     fontFamily: 'Noto Sans JP, sans-serif',
                     color: 'random-dark',
-                    backgroundColor: '#fff',
-                    rotateRatio: 0.5,
-                    minRotation: -Math.PI / 4,
-                    maxRotation: Math.PI / 4,
-                };
-                WordCloud(canvas, options);
+                    backgroundColor: 'transparent',
+                    rotateRatio: 0.3,
+                    minRotation: -Math.PI / 6,
+                    maxRotation: Math.PI / 6,
+                    shuffle: true
+                });
             };
 
             const addWord = () => {
                 const newWord = wordInput.value.trim();
-                if (newWord) {
+                if (newWord && newWord.length > 1) { // 1文字以上
                     const existingWord = wordList.find(item => item[0] === newWord);
                     if (existingWord) {
-                        existingWord[1] += 2; // 既存の単語は重みを大きくする
+                        existingWord[1] += 2;
                     } else {
-                        wordList.push([newWord, 5]); // 新しい単語
+                        wordList.push([newWord, 5]);
                     }
                     wordInput.value = '';
                     drawWordCloud();
@@ -202,88 +233,108 @@
             wordInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') addWord();
             });
-            drawWordCloud(); // Initial draw
+            drawWordCloud();
 
             // --- Timer & Progress ---
-            const startBtns = document.querySelectorAll('.start-btn');
-            let currentTimer = null;
+            let activeTimer = null;
 
-            startBtns.forEach(btn => {
+            document.querySelectorAll('.start-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    if (currentTimer) {
-                        clearInterval(currentTimer.interval);
-                        // 完了していない場合はリセット
-                         if (currentTimer.elapsed < currentTimer.total) {
-                             document.getElementById(`progress-${currentTimer.step}`).style.width = '0%';
-                             updateStatus(currentTimer.step, '未開始', 'slate');
-                         }
+                    const step = btn.dataset.step;
+                    
+                    // If this timer is already active, stop it
+                    if (activeTimer && activeTimer.step === step) {
+                        stopTimer(activeTimer);
+                        activeTimer = null;
+                        return;
+                    }
+
+                    // If another timer is active, stop it first
+                    if (activeTimer) {
+                        stopTimer(activeTimer);
                     }
                     
-                    startBtns.forEach(b => b.disabled = true);
-                    btn.disabled = false;
-                    
-                    const step = btn.dataset.step;
-                    const durationInMinutes = document.getElementById(`step-${step}`).dataset.duration;
-                    const durationInSeconds = durationInMinutes * 60;
-                    let elapsedSeconds = 0;
-
-                    updateStatus(step, '進行中', 'blue');
-
-                    currentTimer = {
-                        step,
-                        interval: setInterval(() => {
-                            elapsedSeconds++;
-                            const progressPercentage = (elapsedSeconds / durationInSeconds) * 100;
-                            document.getElementById(`progress-${step}`).style.width = `${progressPercentage}%`;
-
-                            if (elapsedSeconds >= durationInSeconds) {
-                                clearInterval(currentTimer.interval);
-                                updateStatus(step, '完了', 'green');
-                                startBtns.forEach(b => b.disabled = false);
-                                currentTimer = null;
-                            }
-                        }, 1000),
-                        total: durationInSeconds,
-                        get elapsed() { return elapsedSeconds; }
-                    };
+                    startTimer(step);
                 });
             });
 
-            function updateStatus(step, text, color) {
-                const statusBadge = document.getElementById(`status-${step}`);
-                statusBadge.textContent = text;
-                const colors = {
-                    slate: 'text-slate-600 bg-slate-200',
-                    blue: 'text-blue-600 bg-blue-200',
-                    green: 'text-green-600 bg-green-200'
-                };
-                statusBadge.className = `status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${colors[color]}`;
+            function startTimer(step) {
+                const btn = document.querySelector(`.start-btn[data-step="${step}"]`);
+                const durationInMinutes = document.getElementById(`step-${step}`).dataset.duration;
+                const durationInSeconds = durationInMinutes * 60;
+                
+                let elapsedSeconds = 0;
+                const progressBar = document.getElementById(`progress-${step}`);
+
+                // Check for saved progress
+                if (progressBar.dataset.elapsed) {
+                    elapsedSeconds = parseInt(progressBar.dataset.elapsed, 10);
+                }
+
+                btn.innerHTML = '■ 停止';
+                btn.classList.remove('bg-sky-600', 'hover:bg-sky-700');
+                btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                
+                const interval = setInterval(() => {
+                    elapsedSeconds++;
+                    const progressPercentage = Math.min((elapsedSeconds / durationInSeconds) * 100, 100);
+                    progressBar.style.width = `${progressPercentage}%`;
+                    progressBar.dataset.elapsed = elapsedSeconds;
+
+                    if (elapsedSeconds >= durationInSeconds) {
+                        stopTimer({ step, interval }); // Timer completes
+                        activeTimer = null;
+                    }
+                }, 1000);
+
+                activeTimer = { step, interval, duration: durationInSeconds };
+            }
+
+            function stopTimer({ step, interval }) {
+                clearInterval(interval);
+                const btn = document.querySelector(`.start-btn[data-step="${step}"]`);
+                const progressBar = document.getElementById(`progress-${step}`);
+                const elapsed = parseInt(progressBar.dataset.elapsed || '0', 10);
+                const duration = document.getElementById(`step-${step}`).dataset.duration * 60;
+
+                btn.innerHTML = '▶ 開始';
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-sky-600', 'hover:bg-sky-700');
+
+                if (elapsed >= duration) {
+                    // Mark as complete
+                    progressBar.style.backgroundColor = '#22c55e'; // green
+                    btn.disabled = true;
+                    btn.innerHTML = '完了';
+                    btn.classList.remove('bg-sky-600', 'hover:bg-sky-700');
+                    btn.classList.add('bg-slate-400');
+
+                }
             }
 
             // --- Gemini API for Icebreaker ---
             const callGeminiAPI = async (prompt) => {
                 const apiKey = "AIzaSyCfR-hkddgLLKabxTjsZ-mYIGTe67Ya5Ls"; // ★★★★★★★ ここに取得したAPIキーを入力してください ★★★★★★★
-                if (!apiKey) {
-                    return "APIキーが設定されていません。";
-                }
+                if (!apiKey) return "APIキーが設定されていません。";
+                
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
                 try {
                     const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+                    if (!response.ok) throw new Error(`API request failed: ${response.status}`);
                     const result = await response.json();
                     return result.candidates[0].content.parts[0].text;
                 } catch (error) {
                     console.error('Gemini API Error:', error);
-                    return "AIとの通信中にエラーが発生しました。";
+                    return "AIとの通信エラーです。";
                 }
             };
             
-            const generateIcebreakerBtn = document.getElementById('generateIcebreaker');
-            generateIcebreakerBtn.addEventListener('click', async () => {
+            document.getElementById('generateIcebreaker').addEventListener('click', async (e) => {
+                const btn = e.target;
                 const loader = document.getElementById('icebreakerLoader');
                 const resultDiv = document.getElementById('icebreakerResult');
-                generateIcebreakerBtn.disabled = true;
+                btn.disabled = true;
                 loader.classList.remove('hidden');
                 resultDiv.classList.add('hidden');
                 const prompt = "新人向け交流会で使える、ユニークで面白いアイスブレイクの質問を1つだけ提案してください。質問文のみを返してください。";
@@ -291,10 +342,9 @@
                 resultDiv.textContent = resultText;
                 loader.classList.add('hidden');
                 resultDiv.classList.remove('hidden');
-                generateIcebreakerBtn.disabled = false;
+                btn.disabled = false;
             });
         });
     </script>
-
 </body>
 </html>
