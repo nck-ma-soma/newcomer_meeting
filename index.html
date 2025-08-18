@@ -3,516 +3,296 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>インタラクティブ新人交流会アジェンダ (チェックボックス機能改善版)</title>
+    <title>【リッチ版】インタラクティブ新人交流会アジェンダ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Warm Neutrals (Slate, Sky Blue, White) -->
-    <!-- Application Structure Plan: A single-page, interactive agenda designed as a facilitator's guide. The core is a vertical timeline representing the 3 meeting steps. A donut chart visualizes time allocation. A "Meeting Management" section allows users to save/load sessions. New AI features for whiteboard analysis and real-time facilitation assistance are added to provide deeper, more contextual support during the meeting. -->
-    <!-- Visualization & Content Choices: Report Info: 3-step meeting plan with themes. -> Goal: Organize, Inform, Persist, and Assist. -> Viz/Presentation: Interactive timeline, Donut Chart, and a dynamic whiteboard. New AI features use text areas and result displays. -> Interaction: Click-to-reveal details, Gemini API buttons for icebreakers, note summaries, whiteboard analysis, and facilitation questions. Draggable and resizable sticky notes. Session history management. -> Justification: The new AI features transform the tool from a passive agenda into an active co-facilitator, capable of synthesizing visual data (whiteboard) and providing on-the-fly conversational prompts. -> Library/Method: Chart.js, Vanilla JS for all interactions including history management and advanced Gemini API calls. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
-        .chart-container { position: relative; width: 100%; max-width: 350px; margin-left: auto; margin-right: auto; height: 350px; max-height: 80vw; }
-        .details-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
-        .details-content.open { max-height: 500px; }
-        .gemini-btn, .control-btn { background-color: #1e40af; color: white; padding: 8px 16px; border-radius: 8px; font-weight: 500; transition: background-color 0.3s; }
-        .gemini-btn:hover, .control-btn:hover { background-color: #1d4ed8; }
-        .gemini-btn:disabled, .control-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 300px; margin: auto; height: 300px; }
+        .progress-bar-bg { background-color: #e5e7eb; }
+        .progress-bar { background-color: #3b82f6; transition: width 1s linear; }
+        .gemini-btn { background-color: #1e40af; }
+        .gemini-btn:hover { background-color: #1d4ed8; }
+        .gemini-btn:disabled { background-color: #94a3b8; cursor: not-allowed; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #whiteboard { position: relative; width: 100%; min-height: 400px; background-color: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1rem; overflow: hidden; }
-        #whiteboard.read-only { background-color: #e2e8f0; }
-        .sticky-note { position: absolute; min-width: 100px; min-height: 100px; padding: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: grab; display: flex; flex-direction: column; justify-content: space-between; overflow-wrap: break-word; resize: both; overflow: auto; }
-        .sticky-note-content { flex-grow: 1; }
-        .sticky-note.dragging { cursor: grabbing; z-index: 1000; }
-        .delete-note { position: absolute; top: 5px; right: 5px; cursor: pointer; font-size: 1.2rem; color: #475569; opacity: 0.5; transition: opacity 0.2s; z-index: 10; }
-        .sticky-note:hover .delete-note { opacity: 1; }
-        .resize-handle { position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: se-resize; z-index: 10; }
-        .resize-handle::after { content: ''; position: absolute; right: 3px; bottom: 3px; width: 5px; height: 5px; border-right: 2px solid #94a3b8; border-bottom: 2px solid #94a3b8; }
-        .color-picker .color-option { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
-        .color-picker .color-option.selected { border-color: #0284c7; }
-        .action-item label { text-decoration: none; }
-        .action-item input:checked + label { text-decoration: line-through; color: #64748b; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-8">
+    <div class="container mx-auto max-w-3xl p-4 sm:p-8">
         
         <header class="text-center mb-12">
-            <h1 id="main-title" class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">インタラクティブ新人交流会アジェンダ</h1>
-            <p class="text-slate-500">✨高度AI機能搭載</p>
-            <div id="offline-indicator" class="hidden mt-4 bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 rounded-md" role="alert">
-                <p class="font-bold">オフライン</p>
-                <p>現在オフラインです。AI機能は利用できませんが、ホワイトボードやメモは自動で保存されます。</p>
-            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">インタラクティブ新人交流会アジェンダ</h1>
+            <p class="text-slate-500">✨ AIで会話をリッチに彩る ✨</p>
         </header>
 
-        <main>
-            <section id="session-management" class="mb-12 bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                <h2 class="text-xl font-bold text-center mb-4 text-slate-900">会議の管理</h2>
-                <div class="flex flex-col sm:flex-row gap-4 items-center justify-center">
-                    <div class="flex-grow w-full sm:w-auto">
-                        <label for="history-select" class="block text-sm font-medium text-slate-700 mb-1">過去の交流会を閲覧</label>
-                        <select id="history-select" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"></select>
-                    </div>
-                    <button id="save-session-btn" class="control-btn w-full sm:w-auto bg-sky-600 hover:bg-sky-700">現在の交流会を終了して保存</button>
-                </div>
-            </section>
-
-            <section id="time-allocation" class="mb-16">
-                <h3 class="text-xl font-bold text-center mb-4 text-slate-900">時間配分 (全体30分)</h3>
-                <div class="chart-container">
-                    <canvas id="timeAllocationChart"></canvas>
-                </div>
-            </section>
-
-            <section id="agenda">
-                <h2 class="text-2xl font-bold text-center mb-8 text-slate-900">当日のトークテーマ</h2>
-                <div class="relative border-l-2 border-sky-200 ml-6">
-                    <div class="mb-10 ml-10">
-                        <span class="absolute flex items-center justify-center w-12 h-12 bg-sky-100 rounded-full -left-6 ring-8 ring-slate-50"><span class="text-sky-600 text-xl font-bold">1</span></span>
-                        <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                            <div class="flex justify-between items-center cursor-pointer step" data-step="1">
-                                <h3 class="text-lg font-semibold text-slate-900">アイスブレイク (10分)</h3><span class="text-sky-500 transform transition-transform duration-300 arrow">▼</span>
-                            </div>
-                            <div class="details-content"><ul class="mt-4 space-y-4 text-slate-600 list-disc list-inside"><li><strong>社会人になって一番驚いたこと or ギャップに感じたこと</strong><p class="text-sm text-slate-500 pl-4">「あるある」で共感が生まれやすく、短時間で盛り上がれます。</p></li><li><strong>最近ひそかにハマっていること（アニメ、ゲーム、食べ物など）</strong><p class="text-sm text-slate-500 pl-4">共通の趣味が見つかると、今後の雑談のきっかけになります。</p></li></ul><div class="mt-6 border-t pt-4"><button id="generateIcebreaker" class="gemini-btn w-full sm:w-auto">✨ 新しいアイスブレイクを生成</button><div id="icebreakerLoader" class="hidden loader"></div><div id="icebreakerResult" class="mt-4 p-4 bg-slate-100 rounded-md text-slate-700 hidden"></div></div></div>
-                        </div>
-                    </div>
-                    <div class="mb-10 ml-10">
-                        <span class="absolute flex items-center justify-center w-12 h-12 bg-sky-100 rounded-full -left-6 ring-8 ring-slate-50"><span class="text-sky-600 text-xl font-bold">2</span></span>
-                        <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                            <div class="flex justify-between items-center cursor-pointer step" data-step="2">
-                                <h3 class="text-lg font-semibold text-slate-900">業務の「あるある」から本題へ (15分)</h3><span class="text-sky-500 transform transition-transform duration-300 arrow">▼</span>
-                            </div>
-                            <div class="details-content"><ul class="mt-4 space-y-4 text-slate-600 list-disc list-inside"><li><strong>入社して初めて知った「社内用語」や「専門用語」ってある？</strong><p class="text-sm text-slate-500 pl-4">例：「ポンチ絵」「なるはや」など。仕事の話にスムーズに入るための橋渡しです。</p></li><li><strong>「これ、意外と時間かかった…」って思った作業、最近あった？</strong><p class="text-sm text-slate-500 pl-4">「困っていること」を直接聞くより、ずっと話しやすい聞き方です。</p></li><li><strong>「これは誰に聞けばいいんだ…？」って一瞬迷ったこと</strong><p class="text-sm text-slate-500 pl-4">組織の誰が何に詳しいか、という情報の共有につながります。</p></li></ul></div>
-                        </div>
-                    </div>
-                    <div class="mb-10 ml-10">
-                        <span class="absolute flex items-center justify-center w-12 h-12 bg-sky-100 rounded-full -left-6 ring-8 ring-slate-50"><span class="text-sky-600 text-xl font-bold">3</span></span>
-                        <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                             <div class="flex justify-between items-center cursor-pointer step" data-step="3">
-                                <h3 class="text-lg font-semibold text-slate-900">フリートーク＆まとめ (5分)</h3><span class="text-sky-500 transform transition-transform duration-300 arrow">▼</span>
-                             </div>
-                            <div class="details-content"><ul class="mt-4 space-y-4 text-slate-600 list-disc list-inside"><li><strong>フリートーク</strong><p class="text-sm text-slate-500 pl-4">ここまでで出た話で、気になったことを自由に話す時間に。</p></li><li><strong>まとめ</strong><p class="text-sm text-slate-500 pl-4">先輩社員から、新人たちの話を聞いた感想やアドバイスを伝えます。</p></li></ul></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             
-            <section id="whiteboard-section" class="mt-12">
-                <h2 class="text-2xl font-bold text-center mb-8 text-slate-900">✨ リアルタイム・ホワイトボード</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                    <div id="whiteboard-controls">
-                        <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                            <input type="text" id="noteInput" class="flex-grow p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition" placeholder="付箋に書く内容...">
-                            <button id="addNoteBtn" class="bg-sky-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-sky-700 transition">付箋を追加</button>
+            <div id="agenda-column">
+                <section id="time-allocation" class="mb-8">
+                    <h2 class="text-xl font-bold text-center mb-4 text-slate-900">時間配分 (全体30分)</h2>
+                    <div class="chart-container">
+                        <canvas id="timeAllocationChart"></canvas>
+                    </div>
+                </section>
+
+                <section id="agenda">
+                    <h2 class="text-2xl font-bold text-center mb-6 text-slate-900">当日のトークテーマ</h2>
+                    <div class="space-y-6">
+                        <div id="step-1" class="agenda-item bg-white p-5 rounded-lg shadow-md border border-slate-200" data-duration="10">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <h3 class="text-lg font-semibold text-slate-900">アイスブレイク</h3>
+                                        <span id="status-1" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">未開始</span>
+                                    </div>
+                                    <p class="text-sm text-slate-500">まずはお互いを知る時間</p>
+                                </div>
+                                <button class="start-btn bg-sky-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-sky-700 transition" data-step="1">開始</button>
+                            </div>
+                            <div class="mt-4">
+                                <div class="progress-bar-bg w-full rounded-full h-2.5">
+                                    <div id="progress-1" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-200">
+                                <ul class="space-y-2 text-slate-600 list-disc list-inside text-sm">
+                                    <li>最近の個人的な「小さなブーム」は？</li>
+                                    <li>もし自分がコンビニの商品だったら何だと思う？</li>
+                                </ul>
+                                 <div class="mt-4">
+                                    <button id="generateIcebreaker" class="gemini-btn w-full text-sm text-white font-bold py-2 px-4 rounded">✨ AIで新しいお題を生成</button>
+                                    <div id="icebreakerLoader" class="hidden loader"></div>
+                                    <div id="icebreakerResult" class="mt-3 p-3 bg-slate-100 rounded-md text-slate-700 text-sm hidden"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-4 mb-6">
-                            <span class="text-sm font-medium text-slate-600">色を選択:</span>
-                            <div class="color-picker flex gap-2">
-                                <div class="color-option selected" data-color="bg-yellow-200" style="background-color: #fef08a;"></div>
-                                <div class="color-option" data-color="bg-pink-200" style="background-color: #fbcfe8;"></div>
-                                <div class="color-option" data-color="bg-green-200" style="background-color: #bbf7d0;"></div>
-                                <div class="color-option" data-color="bg-blue-200" style="background-color: #bfdbfe;"></div>
+                        <div id="step-2" class="agenda-item bg-white p-5 rounded-lg shadow-md border border-slate-200" data-duration="15">
+                             <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <h3 class="text-lg font-semibold text-slate-900">ちょっとだけ仕事の話</h3>
+                                        <span id="status-2" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">未開始</span>
+                                    </div>
+                                    <p class="text-sm text-slate-500">発見や気づきを共有！</p>
+                                </div>
+                                <button class="start-btn bg-sky-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-sky-700 transition" data-step="2">開始</button>
+                            </div>
+                            <div class="mt-4">
+                                <div class="progress-bar-bg w-full rounded-full h-2.5">
+                                    <div id="progress-2" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                             <div class="mt-4 pt-4 border-t border-slate-200">
+                                <ul class="space-y-2 text-slate-600 list-disc list-inside text-sm">
+                                    <li>入社してから知った、面白い「社内用語」は？</li>
+                                    <li>最近、仕事で「なるほど！」って思った瞬間は？</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div id="step-3" class="agenda-item bg-white p-5 rounded-lg shadow-md border border-slate-200" data-duration="5">
+                             <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center mb-2">
+                                        <h3 class="text-lg font-semibold text-slate-900">なんでも質問</h3>
+                                        <span id="status-3" class="status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-slate-600 bg-slate-200">未開始</span>
+                                    </div>
+                                    <p class="text-sm text-slate-500">気になったことを何でも！</p>
+                                </div>
+                                <button class="start-btn bg-sky-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-sky-700 transition" data-step="3">開始</button>
+                            </div>
+                            <div class="mt-4">
+                                <div class="progress-bar-bg w-full rounded-full h-2.5">
+                                    <div id="progress-3" class="progress-bar h-2.5 rounded-full" style="width: 0%"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div id="whiteboard"></div>
-                    <div class="mt-6 border-t pt-4">
-                        <button id="analyzeWhiteboard" class="gemini-btn w-full sm:w-auto">✨ ホワイトボードを分析して要約</button>
-                        <div id="whiteboardLoader" class="hidden loader"></div>
-                        <div id="whiteboardResult" class="mt-4 p-4 bg-slate-100 rounded-md text-slate-700 hidden whitespace-pre-wrap"></div>
-                    </div>
-                </div>
-            </section>
+                </section>
+            </div>
 
-            <section id="facilitation-assist" class="mt-12">
-                <h2 class="text-2xl font-bold text-center mb-8 text-slate-900">✨ AIファシリテーションアシスト</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                    <label for="assistInput" class="block text-lg font-semibold text-slate-900 mb-2">議論を深める</label>
-                    <p class="text-sm text-slate-500 mb-4">会話が止まったり、議論を深めたい時に、現在の状況やキーワードを入力してAIに質問を生成させましょう。</p>
-                    <textarea id="assistInput" rows="3" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition" placeholder="例：ツールの使い方が分からないという話が出た"></textarea>
-                    <div class="mt-4">
-                        <button id="getAssist" class="gemini-btn w-full sm:w-auto">✨ 次の質問を生成</button>
-                        <div id="assistLoader" class="hidden loader"></div>
-                        <div id="assistResult" class="mt-4 p-4 bg-slate-100 rounded-md text-slate-700 hidden"></div>
+            <div id="interactive-column">
+                <section id="wordcloud-section" class="bg-white p-6 rounded-lg shadow-md border border-slate-200 sticky top-8">
+                    <h2 class="text-2xl font-bold text-center mb-4 text-slate-900">今日のキーワード</h2>
+                    <p class="text-center text-sm text-slate-500 mb-4">会話で出た言葉を追加してみよう！</p>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="wordInput" class="flex-grow p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500" placeholder="キーワードを入力してEnter">
+                        <button id="addWordBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-700">追加</button>
                     </div>
-                </div>
-            </section>
-
-            <section id="gemini-summary" class="mt-12">
-                <h2 class="text-2xl font-bold text-center mb-8 text-slate-900">✨ AIによる議事録サポート</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
-                    <label for="meetingNotes" class="block text-lg font-semibold text-slate-900 mb-2">会議メモ</label>
-                    <p class="text-sm text-slate-500 mb-4">会議中の重要な発言や決定事項をこちらにメモしてください。</p>
-                    <textarea id="meetingNotes" rows="8" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition" placeholder="例：〇〇さんはツールの使い方に不安がある。△△の資料作成はAさんが得意。"></textarea>
-                    <div class="mt-4"><button id="summarizeNotes" class="gemini-btn w-full sm:w-auto">✨ 要約＆アクションアイテム抽出</button><div id="summaryLoader" class="hidden loader"></div><div id="summaryResult" class="mt-4 p-4 bg-slate-100 rounded-md text-slate-700 hidden whitespace-pre-wrap"></div></div>
-                </div>
-            </section>
+                    <canvas id="wordCloudCanvas" width="400" height="400"></canvas>
+                </section>
+            </div>
         </main>
+
+        <footer class="text-center mt-16 text-slate-400 text-sm">
+            <p>時間配分やテーマは気にせず、自由に楽しんでください！</p>
+        </footer>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // --- Chart.js ---
             const chartCtx = document.getElementById('timeAllocationChart').getContext('2d');
             new Chart(chartCtx, {
-                type: 'doughnut', data: { labels: ['アイスブレイク (10分)', '業務の「あるある」 (15分)', 'まとめ (5分)'], datasets: [{ label: '時間配分', data: [10, 15, 5], backgroundColor: ['rgb(125, 211, 252)', 'rgb(56, 189, 248)', 'rgb(14, 165, 233)'], borderColor: 'rgb(248, 250, 252)', borderWidth: 4, hoverOffset: 8 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: "'Inter', 'Noto Sans JP', sans-serif", size: 14 }, color: '#475569' } }, tooltip: { callbacks: { label: (context) => `${context.label || ''}: ${context.parsed !== null ? context.parsed + '分' : ''}` } } }, cutout: '60%' }
+                type: 'doughnut',
+                data: {
+                    labels: ['アイスブレイク (10分)', '仕事の話 (15分)', 'なんでも質問 (5分)'],
+                    datasets: [{
+                        data: [10, 15, 5],
+                        backgroundColor: ['#7dd3fc', '#38bdf8', '#0ea5e9'],
+                        borderColor: '#f8fafc', borderWidth: 4, hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '60%'
+                }
             });
 
-            const steps = document.querySelectorAll('.step');
-            steps.forEach(step => {
-                step.addEventListener('click', () => {
-                    const content = step.nextElementSibling;
-                    if (!content || !content.classList.contains('details-content')) return;
-                    const arrow = step.querySelector('.arrow');
-                    const isOpen = content.classList.contains('open');
-                    document.querySelectorAll('.details-content').forEach(c => c.classList.remove('open'));
-                    document.querySelectorAll('.arrow').forEach(a => a.style.transform = 'rotate(0deg)');
-                    if (!isOpen) { content.classList.add('open'); arrow.style.transform = 'rotate(180deg)'; }
+            // --- Word Cloud ---
+            let wordList = [];
+            const canvas = document.getElementById('wordCloudCanvas');
+            const wordInput = document.getElementById('wordInput');
+            const addWordBtn = document.getElementById('addWordBtn');
+            
+            const drawWordCloud = () => {
+                if (wordList.length === 0) {
+                     const ctx = canvas.getContext('2d');
+                     ctx.clearRect(0, 0, canvas.width, canvas.height);
+                     ctx.fillStyle = '#9ca3af';
+                     ctx.textAlign = 'center';
+                     ctx.font = '16px "Noto Sans JP"';
+                     ctx.fillText('まだキーワードがありません', canvas.width / 2, canvas.height / 2);
+                     return;
+                }
+                const options = {
+                    list: wordList,
+                    gridSize: Math.round(16 * canvas.width / 1024),
+                    weightFactor: (size) => Math.pow(size, 2.3) * canvas.width / 1024,
+                    fontFamily: 'Noto Sans JP, sans-serif',
+                    color: 'random-dark',
+                    backgroundColor: '#fff',
+                    rotateRatio: 0.5,
+                    minRotation: -Math.PI / 4,
+                    maxRotation: Math.PI / 4,
+                };
+                WordCloud(canvas, options);
+            };
+
+            const addWord = () => {
+                const newWord = wordInput.value.trim();
+                if (newWord) {
+                    const existingWord = wordList.find(item => item[0] === newWord);
+                    if (existingWord) {
+                        existingWord[1] += 2; // 既存の単語は重みを大きくする
+                    } else {
+                        wordList.push([newWord, 5]); // 新しい単語
+                    }
+                    wordInput.value = '';
+                    drawWordCloud();
+                }
+            };
+            addWordBtn.addEventListener('click', addWord);
+            wordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') addWord();
+            });
+            drawWordCloud(); // Initial draw
+
+            // --- Timer & Progress ---
+            const startBtns = document.querySelectorAll('.start-btn');
+            let currentTimer = null;
+
+            startBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (currentTimer) {
+                        clearInterval(currentTimer.interval);
+                        // 完了していない場合はリセット
+                         if (currentTimer.elapsed < currentTimer.total) {
+                             document.getElementById(`progress-${currentTimer.step}`).style.width = '0%';
+                             updateStatus(currentTimer.step, '未開始', 'slate');
+                         }
+                    }
+                    
+                    startBtns.forEach(b => b.disabled = true);
+                    btn.disabled = false;
+                    
+                    const step = btn.dataset.step;
+                    const durationInMinutes = document.getElementById(`step-${step}`).dataset.duration;
+                    const durationInSeconds = durationInMinutes * 60;
+                    let elapsedSeconds = 0;
+
+                    updateStatus(step, '進行中', 'blue');
+
+                    currentTimer = {
+                        step,
+                        interval: setInterval(() => {
+                            elapsedSeconds++;
+                            const progressPercentage = (elapsedSeconds / durationInSeconds) * 100;
+                            document.getElementById(`progress-${step}`).style.width = `${progressPercentage}%`;
+
+                            if (elapsedSeconds >= durationInSeconds) {
+                                clearInterval(currentTimer.interval);
+                                updateStatus(step, '完了', 'green');
+                                startBtns.forEach(b => b.disabled = false);
+                                currentTimer = null;
+                            }
+                        }, 1000),
+                        total: durationInSeconds,
+                        get elapsed() { return elapsedSeconds; }
+                    };
                 });
             });
-            
+
+            function updateStatus(step, text, color) {
+                const statusBadge = document.getElementById(`status-${step}`);
+                statusBadge.textContent = text;
+                const colors = {
+                    slate: 'text-slate-600 bg-slate-200',
+                    blue: 'text-blue-600 bg-blue-200',
+                    green: 'text-green-600 bg-green-200'
+                };
+                statusBadge.className = `status-badge ml-3 text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${colors[color]}`;
+            }
+
+            // --- Gemini API for Icebreaker ---
             const callGeminiAPI = async (prompt) => {
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiKey = "AIzaSyCfR-hkddgLLKabxTjsZ-mYIGTe67Ya5Ls"; // ★★★★★★★ ここに取得したAPIキーを入力してください ★★★★★★★
+                if (!apiKey) {
+                    return "APIキーが設定されていません。";
+                }
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
                 try {
                     const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
                     const result = await response.json();
-                    if (result.candidates && result.candidates[0]?.content?.parts?.[0]) { return result.candidates[0].content.parts[0].text; }
-                    return "AIから有効な回答を得られませんでした。";
-                } catch (error) { console.error('Gemini API Error:', error); return "AIとの通信中にエラーが発生しました。"; }
+                    return result.candidates[0].content.parts[0].text;
+                } catch (error) {
+                    console.error('Gemini API Error:', error);
+                    return "AIとの通信中にエラーが発生しました。";
+                }
             };
-
+            
             const generateIcebreakerBtn = document.getElementById('generateIcebreaker');
-            const icebreakerLoader = document.getElementById('icebreakerLoader');
-            const icebreakerResult = document.getElementById('icebreakerResult');
             generateIcebreakerBtn.addEventListener('click', async () => {
-                generateIcebreakerBtn.disabled = true; icebreakerLoader.classList.remove('hidden'); icebreakerResult.classList.add('hidden');
+                const loader = document.getElementById('icebreakerLoader');
+                const resultDiv = document.getElementById('icebreakerResult');
+                generateIcebreakerBtn.disabled = true;
+                loader.classList.remove('hidden');
+                resultDiv.classList.add('hidden');
                 const prompt = "新人向け交流会で使える、ユニークで面白いアイスブレイクの質問を1つだけ提案してください。質問文のみを返してください。";
                 const resultText = await callGeminiAPI(prompt);
-                icebreakerResult.textContent = resultText;
-                icebreakerLoader.classList.add('hidden'); icebreakerResult.classList.remove('hidden'); generateIcebreakerBtn.disabled = false;
+                resultDiv.textContent = resultText;
+                loader.classList.add('hidden');
+                resultDiv.classList.remove('hidden');
+                generateIcebreakerBtn.disabled = false;
             });
-
-            const summarizeNotesBtn = document.getElementById('summarizeNotes');
-            const summaryLoader = document.getElementById('summaryLoader');
-            const summaryResult = document.getElementById('summaryResult');
-            const meetingNotes = document.getElementById('meetingNotes');
-            
-            const renderSummaryAndActionItems = (text) => {
-                summaryResult.innerHTML = '';
-                const lines = text.split('\n');
-                let currentSection = '';
-                lines.forEach((line, index) => {
-                    if (line.startsWith('【') && line.endsWith('】')) {
-                        const title = document.createElement('h3');
-                        title.textContent = line;
-                        title.className = 'text-lg font-semibold mt-4 mb-2';
-                        summaryResult.appendChild(title);
-                        currentSection = line;
-                    } else if (line.startsWith('- [ ]') || line.startsWith('- [x]')) {
-                        const isChecked = line.startsWith('- [x]');
-                        const itemText = line.substring(5).trim();
-                        
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'action-item flex items-center my-1';
-                        
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.checked = isChecked;
-                        checkbox.id = `action-item-${index}`;
-                        checkbox.className = 'h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500';
-                        
-                        const label = document.createElement('label');
-                        label.htmlFor = `action-item-${index}`;
-                        label.textContent = itemText;
-                        label.className = 'ml-2 text-slate-700';
-                        
-                        itemDiv.appendChild(checkbox);
-                        itemDiv.appendChild(label);
-                        summaryResult.appendChild(itemDiv);
-                    } else if (line.trim() !== '') {
-                        const p = document.createElement('p');
-                        p.textContent = line;
-                        summaryResult.appendChild(p);
-                    }
-                });
-            };
-
-            summarizeNotesBtn.addEventListener('click', async () => {
-                if (meetingNotes.value.trim() === "") { summaryResult.textContent = "要約する内容がありません。メモを入力してください。"; summaryResult.classList.remove('hidden'); return; }
-                summarizeNotesBtn.disabled = true; summaryLoader.classList.remove('hidden'); summaryResult.classList.add('hidden');
-                const prompt = `以下の新人交流会の会議メモを簡潔に要約し、次のアクションアイテムを箇条書きで抽出してください。\n\n### 会議メモ:\n${meetingNotes.value}\n\n### 出力形式:\n【要約】\nここに要約を記述。\n\n【アクションアイテム】\n- [ ] ここにアクションアイテム1を記述。\n- [ ] ここにアクションアイテム2を記述。`;
-                const resultText = await callGeminiAPI(prompt);
-                renderSummaryAndActionItems(resultText);
-                summaryLoader.classList.add('hidden');
-                summaryResult.classList.remove('hidden'); 
-                summarizeNotesBtn.disabled = false;
-                saveCurrentState();
-            });
-
-            const whiteboard = document.getElementById('whiteboard');
-            const noteInput = document.getElementById('noteInput');
-            const addNoteBtn = document.getElementById('addNoteBtn');
-            const colorPicker = document.querySelector('.color-picker');
-            let selectedColor = 'bg-yellow-200';
-
-            colorPicker.addEventListener('click', (e) => {
-                if (e.target.classList.contains('color-option')) {
-                    document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-                    e.target.classList.add('selected');
-                    selectedColor = e.target.dataset.color;
-                }
-            });
-
-            const createNote = (noteData) => {
-                const { text, color, x, y, width, height, transform } = noteData;
-                const note = document.createElement('div');
-                note.className = `sticky-note ${color} rounded-lg text-slate-800`;
-                note.style.left = `${x}px`; note.style.top = `${y}px`;
-                note.style.width = `${width}px`; note.style.height = `${height}px`;
-                note.style.transform = transform;
-                const textContent = document.createElement('div');
-                textContent.className = 'sticky-note-content';
-                textContent.textContent = text;
-                note.appendChild(textContent);
-                const deleteBtn = document.createElement('span');
-                deleteBtn.innerHTML = '&times;'; deleteBtn.className = 'delete-note';
-                note.appendChild(deleteBtn);
-                const resizeHandle = document.createElement('div');
-                resizeHandle.className = 'resize-handle';
-                note.appendChild(resizeHandle);
-                deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); whiteboard.removeChild(note); saveCurrentState(); });
-                let isDragging = false, dragOffsetX, dragOffsetY;
-                note.addEventListener('mousedown', (e) => {
-                    if (e.target.classList.contains('resize-handle') || e.target.classList.contains('delete-note')) return;
-                    isDragging = true; note.classList.add('dragging');
-                    dragOffsetX = e.clientX - note.offsetLeft; dragOffsetY = e.clientY - note.offsetTop;
-                });
-                let isResizing = false, resizeStartX, resizeStartY, initialWidth, initialHeight;
-                resizeHandle.addEventListener('mousedown', (e) => {
-                    e.stopPropagation(); isResizing = true;
-                    resizeStartX = e.clientX; resizeStartY = e.clientY;
-                    initialWidth = note.offsetWidth; initialHeight = note.offsetHeight;
-                });
-                document.addEventListener('mousemove', (e) => {
-                    if (isDragging) {
-                        let newX = e.clientX - dragOffsetX, newY = e.clientY - dragOffsetY;
-                        const boardRect = whiteboard.getBoundingClientRect();
-                        newX = Math.max(0, Math.min(newX, boardRect.width - note.offsetWidth));
-                        newY = Math.max(0, Math.min(newY, boardRect.height - note.offsetHeight));
-                        note.style.left = `${newX}px`; note.style.top = `${newY}px`;
-                    }
-                    if (isResizing) {
-                        const newWidth = initialWidth + (e.clientX - resizeStartX);
-                        const newHeight = initialHeight + (e.clientY - resizeStartY);
-                        note.style.width = `${Math.max(100, newWidth)}px`;
-                        note.style.height = `${Math.max(100, newHeight)}px`;
-                    }
-                });
-                document.addEventListener('mouseup', () => {
-                    if (isDragging) { isDragging = false; note.classList.remove('dragging'); saveCurrentState(); }
-                    if (isResizing) { isResizing = false; saveCurrentState(); }
-                });
-                whiteboard.appendChild(note);
-            };
-
-            addNoteBtn.addEventListener('click', () => {
-                const text = noteInput.value.trim();
-                if (text) {
-                    const boardRect = whiteboard.getBoundingClientRect();
-                    const noteData = {
-                        text, color: selectedColor,
-                        x: Math.random() * (boardRect.width - 200), y: Math.random() * (boardRect.height - 200),
-                        width: 200, height: 200, transform: `rotate(${(Math.random() - 0.5) * 10}deg)`
-                    };
-                    createNote(noteData);
-                    noteInput.value = '';
-                    saveCurrentState();
-                }
-            });
-            noteInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addNoteBtn.click(); });
-
-            const mainTitle = document.getElementById('main-title');
-            const historySelect = document.getElementById('history-select');
-            const saveSessionBtn = document.getElementById('save-session-btn');
-            const whiteboardControls = document.getElementById('whiteboard-controls');
-            const APP_KEY = 'interactiveAgendaApp';
-
-            const getAppData = () => JSON.parse(localStorage.getItem(APP_KEY)) || { history: [], currentMeetingId: 1 };
-            const saveAppData = (data) => localStorage.setItem(APP_KEY, JSON.stringify(data));
-
-            const getCurrentState = () => {
-                const notes = [];
-                document.querySelectorAll('.sticky-note').forEach(note => {
-                    notes.push({
-                        text: note.querySelector('.sticky-note-content').textContent,
-                        color: note.classList[1], x: note.offsetLeft, y: note.offsetTop,
-                        width: note.offsetWidth, height: note.offsetHeight, transform: note.style.transform
-                    });
-                });
-                return {
-                    notes,
-                    meetingNotesText: meetingNotes.value,
-                    summaryHtml: summaryResult.innerHTML,
-                    whiteboardSummaryHtml: document.getElementById('whiteboardResult').innerHTML,
-                    assistInputText: document.getElementById('assistInput').value,
-                    assistResultText: document.getElementById('assistResult').textContent
-                };
-            };
-            
-            const saveCurrentState = () => {
-                const appData = getAppData();
-                appData.currentState = getCurrentState();
-                saveAppData(appData);
-            };
-
-            const clearUI = () => {
-                whiteboard.innerHTML = ''; meetingNotes.value = '';
-                summaryResult.innerHTML = ''; summaryResult.classList.add('hidden');
-                document.getElementById('whiteboardResult').innerHTML = ''; document.getElementById('whiteboardResult').classList.add('hidden');
-                document.getElementById('assistInput').value = '';
-                document.getElementById('assistResult').textContent = ''; document.getElementById('assistResult').classList.add('hidden');
-            };
-            
-            const loadStateToUI = (state) => {
-                clearUI();
-                if (state) {
-                    state.notes.forEach(noteData => createNote(noteData));
-                    meetingNotes.value = state.meetingNotesText;
-                    if (state.summaryHtml) { summaryResult.innerHTML = state.summaryHtml; summaryResult.classList.remove('hidden'); }
-                    if (state.whiteboardSummaryHtml) { document.getElementById('whiteboardResult').innerHTML = state.whiteboardSummaryHtml; document.getElementById('whiteboardResult').classList.remove('hidden'); }
-                    if(state.assistInputText) document.getElementById('assistInput').value = state.assistInputText;
-                    if(state.assistResultText) { document.getElementById('assistResult').textContent = state.assistResultText; document.getElementById('assistResult').classList.remove('hidden'); }
-                }
-            };
-            
-            const setReadOnly = (isReadOnly) => {
-                whiteboardControls.style.display = isReadOnly ? 'none' : 'block';
-                meetingNotes.disabled = isReadOnly;
-                summarizeNotesBtn.style.display = isReadOnly ? 'none' : 'block';
-                document.querySelectorAll('.delete-note, .resize-handle').forEach(el => el.style.display = isReadOnly ? 'none' : 'block');
-                whiteboard.classList.toggle('read-only', isReadOnly);
-                document.getElementById('analyzeWhiteboard').style.display = isReadOnly ? 'none' : 'block';
-                document.getElementById('facilitation-assist').style.display = isReadOnly ? 'none' : 'block';
-                document.querySelectorAll('#summaryResult input[type="checkbox"]').forEach(cb => cb.disabled = isReadOnly);
-            };
-
-            const updateHistoryDropdown = () => {
-                const appData = getAppData();
-                historySelect.innerHTML = '<option value="-1">現在の交流会</option>';
-                appData.history.forEach((session, index) => {
-                    const option = document.createElement('option');
-                    option.value = index; option.textContent = session.title;
-                    historySelect.appendChild(option);
-                });
-                historySelect.value = "-1";
-            };
-
-            saveSessionBtn.addEventListener('click', () => {
-                const appData = getAppData();
-                const currentState = getCurrentState();
-                if (currentState.notes.length === 0 && currentState.meetingNotesText.trim() === "") { alert("保存する内容がありません。"); return; }
-                const sessionTitle = `第${appData.currentMeetingId}回 交流会 (${new Date().toLocaleDateString()})`;
-                appData.history.push({ title: sessionTitle, state: currentState });
-                appData.currentMeetingId += 1;
-                appData.currentState = null;
-                saveAppData(appData);
-                loadStateToUI(null);
-                updateHistoryDropdown();
-                mainTitle.textContent = `第${appData.currentMeetingId}回 新人交流会アジェンダ`;
-                setReadOnly(false);
-            });
-
-            historySelect.addEventListener('change', () => {
-                const selectedIndex = parseInt(historySelect.value, 10);
-                const appData = getAppData();
-                if (selectedIndex === -1) {
-                    loadStateToUI(appData.currentState);
-                    mainTitle.textContent = `第${appData.currentMeetingId}回 新人交流会アジェンダ`;
-                    setReadOnly(false);
-                } else {
-                    const selectedSession = appData.history[selectedIndex];
-                    loadStateToUI(selectedSession.state);
-                    mainTitle.textContent = `${selectedSession.title} (閲覧中)`;
-                    setReadOnly(true);
-                }
-            });
-
-            const analyzeWhiteboardBtn = document.getElementById('analyzeWhiteboard');
-            const whiteboardLoader = document.getElementById('whiteboardLoader');
-            const whiteboardResult = document.getElementById('whiteboardResult');
-            analyzeWhiteboardBtn.addEventListener('click', async () => {
-                const notes = Array.from(document.querySelectorAll('.sticky-note .sticky-note-content')).map(note => note.textContent.trim()).filter(text => text);
-                if (notes.length === 0) {
-                    whiteboardResult.textContent = "分析する付箋がありません。";
-                    whiteboardResult.classList.remove('hidden');
-                    return;
-                }
-                analyzeWhiteboardBtn.disabled = true; whiteboardLoader.classList.remove('hidden'); whiteboardResult.classList.add('hidden');
-                const notesText = notes.join('\n- ');
-                const prompt = `以下の新人交流会のホワイトボードに書かれた付箋のアイデアを分析し、主要なテーマを3つにまとめて、関連する意見を箇条書きで整理してください。\n\n### 付箋の内容:\n- ${notesText}\n\n### 出力形式:\n【主要なテーマ】\n1. **テーマ1**: 関連する意見の要約\n2. **テーマ2**: 関連する意見の要約\n3. **テーマ3**: 関連する意見の要約`;
-                const resultText = await callGeminiAPI(prompt);
-                whiteboardResult.innerHTML = resultText.replace(/\n/g, '<br>');
-                whiteboardLoader.classList.add('hidden'); whiteboardResult.classList.remove('hidden'); analyzeWhiteboardBtn.disabled = false;
-                saveCurrentState();
-            });
-
-            const getAssistBtn = document.getElementById('getAssist');
-            const assistLoader = document.getElementById('assistLoader');
-            const assistResult = document.getElementById('assistResult');
-            const assistInput = document.getElementById('assistInput');
-            getAssistBtn.addEventListener('click', async () => {
-                const context = assistInput.value.trim();
-                if (context === "") {
-                    assistResult.textContent = "状況やキーワードを入力してください。";
-                    assistResult.classList.remove('hidden');
-                    return;
-                }
-                getAssistBtn.disabled = true; assistLoader.classList.remove('hidden'); assistResult.classList.add('hidden');
-                const prompt = `あなたは新人交流会のファシリテーターです。現在、以下の状況で会話が少し停滞しています。この議論を活性化させるための、具体的で深掘りできる質問を1つだけ提案してください。\n\n現在の状況: 「${context}」\n\n質問の提案:`;
-                const resultText = await callGeminiAPI(prompt);
-                assistResult.textContent = resultText;
-                assistLoader.classList.add('hidden'); assistResult.classList.remove('hidden'); getAssistBtn.disabled = false;
-                saveCurrentState();
-            });
-
-            const initializeApp = () => {
-                const appData = getAppData();
-                loadStateToUI(appData.currentState);
-                updateHistoryDropdown();
-                mainTitle.textContent = `第${appData.currentMeetingId}回 新人交流会アジェンダ`;
-                setReadOnly(false);
-                const offlineIndicator = document.getElementById('offline-indicator');
-                const updateOnlineStatus = () => {
-                    const isOnline = navigator.onLine;
-                    generateIcebreakerBtn.disabled = !isOnline;
-                    summarizeNotesBtn.disabled = !isOnline;
-                    analyzeWhiteboardBtn.disabled = !isOnline;
-                    getAssistBtn.disabled = !isOnline;
-                    offlineIndicator.classList.toggle('hidden', isOnline);
-                };
-                window.addEventListener('online', updateOnlineStatus);
-                window.addEventListener('offline', updateOnlineStatus);
-                updateOnlineStatus();
-            };
-            
-            summaryResult.addEventListener('change', (e) => {
-                if (e.target.type === 'checkbox') {
-                    saveCurrentState();
-                }
-            });
-
-            meetingNotes.addEventListener('input', saveCurrentState);
-            assistInput.addEventListener('input', saveCurrentState);
-            initializeApp();
         });
     </script>
 
