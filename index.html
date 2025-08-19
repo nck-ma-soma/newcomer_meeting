@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【改善版】インタラクティブ新人交流会アジェンダ</title>
+    <title>【修正版】インタラクティブ新人交流会アジェンダ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
@@ -218,7 +218,10 @@
 
             const addWord = () => {
                 const newWord = wordInput.value.trim();
-                if (newWord && newWord.length > 1) { // 1文字以上
+                // ★★★★★★★★★★★★★★★★
+                // ★★★ 修正点：1文字でも追加できるように条件を変更 ★★★
+                // ★★★★★★★★★★★★★★★★
+                if (newWord) {
                     const existingWord = wordList.find(item => item[0] === newWord);
                     if (existingWord) {
                         existingWord[1] += 2;
@@ -242,14 +245,12 @@
                 btn.addEventListener('click', () => {
                     const step = btn.dataset.step;
                     
-                    // If this timer is already active, stop it
                     if (activeTimer && activeTimer.step === step) {
                         stopTimer(activeTimer);
                         activeTimer = null;
                         return;
                     }
 
-                    // If another timer is active, stop it first
                     if (activeTimer) {
                         stopTimer(activeTimer);
                     }
@@ -266,7 +267,6 @@
                 let elapsedSeconds = 0;
                 const progressBar = document.getElementById(`progress-${step}`);
 
-                // Check for saved progress
                 if (progressBar.dataset.elapsed) {
                     elapsedSeconds = parseInt(progressBar.dataset.elapsed, 10);
                 }
@@ -302,7 +302,6 @@
                 btn.classList.add('bg-sky-600', 'hover:bg-sky-700');
 
                 if (elapsed >= duration) {
-                    // Mark as complete
                     progressBar.style.backgroundColor = '#22c55e'; // green
                     btn.disabled = true;
                     btn.innerHTML = '完了';
