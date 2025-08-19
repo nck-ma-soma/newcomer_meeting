@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【修正版】インタラクティブ新人交流会アジェンダ</title>
+    <title>【最終修正版】インタラクティブ新人交流会アジェンダ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
@@ -13,7 +13,7 @@
     <style>
         body { 
             font-family: 'Noto Sans JP', sans-serif; 
-            background-color: #f0f4f8; /* Slightly bluish-gray background */
+            background-color: #f0f4f8;
         }
         .chart-container { position: relative; width: 100%; max-width: 280px; margin: auto; height: 280px; }
         .progress-bar-bg { background-color: #e5e7eb; }
@@ -191,8 +191,16 @@
             const canvas = document.getElementById('wordCloudCanvas');
             const wordInput = document.getElementById('wordInput');
             const addWordBtn = document.getElementById('addWordBtn');
+            const canvasContainer = document.getElementById('wordCloudCanvasContainer');
             
             const drawWordCloud = () => {
+                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+                // ★★★ 修正点：描画前にCanvasのサイズをコンテナに合わせる ★★★
+                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+                const newSize = canvasContainer.clientWidth;
+                canvas.width = newSize;
+                canvas.height = newSize;
+
                 if (wordList.length === 0) {
                      const ctx = canvas.getContext('2d');
                      ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -202,13 +210,11 @@
                      ctx.fillText('キーワードを追加しよう！', canvas.width / 2, canvas.height / 2);
                      return;
                 }
-                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-                // ★★★ 修正点：WordCloudのオプションを安定したものに変更 ★★★
-                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
                 WordCloud(canvas, {
                     list: wordList,
-                    gridSize: 10,
-                    weightFactor: size => size * 8, // シンプルなサイズ計算に変更
+                    gridSize: 12, // 少し間隔を広げる
+                    weightFactor: size => size * 6, // サイズの倍率を少し抑える
                     fontFamily: 'Noto Sans JP, sans-serif',
                     color: 'random-dark',
                     backgroundColor: 'transparent',
@@ -216,7 +222,7 @@
                     minRotation: -Math.PI / 6,
                     maxRotation: Math.PI / 6,
                     shuffle: true,
-                    minSize: 12 // 小さすぎる文字が描画されないように設定
+                    minSize: 12
                 });
             };
 
@@ -237,7 +243,11 @@
             wordInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') addWord();
             });
+            
+            // 初期描画とウィンドウサイズ変更時の再描画
             drawWordCloud();
+            window.addEventListener('resize', drawWordCloud);
+
 
             // --- Timer & Progress ---
             let activeTimer = null;
