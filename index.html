@@ -202,25 +202,26 @@
                      ctx.fillText('キーワードを追加しよう！', canvas.width / 2, canvas.height / 2);
                      return;
                 }
+                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+                // ★★★ 修正点：WordCloudのオプションを安定したものに変更 ★★★
+                // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
                 WordCloud(canvas, {
                     list: wordList,
-                    gridSize: 8,
-                    weightFactor: (size) => Math.pow(size, 1.8) * 10,
+                    gridSize: 10,
+                    weightFactor: size => size * 8, // シンプルなサイズ計算に変更
                     fontFamily: 'Noto Sans JP, sans-serif',
                     color: 'random-dark',
                     backgroundColor: 'transparent',
                     rotateRatio: 0.3,
                     minRotation: -Math.PI / 6,
                     maxRotation: Math.PI / 6,
-                    shuffle: true
+                    shuffle: true,
+                    minSize: 12 // 小さすぎる文字が描画されないように設定
                 });
             };
 
             const addWord = () => {
                 const newWord = wordInput.value.trim();
-                // ★★★★★★★★★★★★★★★★
-                // ★★★ 修正点：1文字でも追加できるように条件を変更 ★★★
-                // ★★★★★★★★★★★★★★★★
                 if (newWord) {
                     const existingWord = wordList.find(item => item[0] === newWord);
                     if (existingWord) {
@@ -307,7 +308,6 @@
                     btn.innerHTML = '完了';
                     btn.classList.remove('bg-sky-600', 'hover:bg-sky-700');
                     btn.classList.add('bg-slate-400');
-
                 }
             }
 
